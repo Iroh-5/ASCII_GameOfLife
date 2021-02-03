@@ -1,20 +1,124 @@
-﻿// Convey's Game Of Life.cpp : Этот файл содержит функцию "main". Здесь начинается и заканчивается выполнение программы.
-//
-
+﻿#include <Windows.h>
+#include <vector>
+#include <ctime>
+#include <chrono>
 #include <iostream>
+
+using namespace std::chrono;
+
+constexpr int nScreenWidth  = 120;
+constexpr int nScreenHeight = 40;
+
+struct Cell
+{
+	int x;
+	int y;
+};
+
+unsigned CountNeighbor(wchar_t* screen, int x, int y)
+{
+	unsigned res = 0;
+	if (x != 0 && screen[y * nScreenWidth + x - 1] != L' ')
+		res++;
+	if (y != 3 && screen[(y - 1) * nScreenWidth + x] != L' ')
+		res++;
+	if (x != nScreenWidth - 1 && screen[y * nScreenWidth + x + 1] != L' ')
+		res++;
+	if (y != nScreenHeight - 1 && screen[(y + 1) * nScreenWidth + x] != L' ')
+		res++;
+	if (x != 0 && y != 3 && screen[(y - 1) * nScreenWidth + x - 1] != L' ')
+		res++;
+	if (x != 0 && y != nScreenHeight - 1 && screen[(y + 1) * nScreenWidth + x - 1] != L' ')
+		res++;
+	if (x != nScreenWidth - 1 && y != 3 && screen[(y - 1) * nScreenWidth + x + 1] != L' ')
+		res++;
+	if (x != nScreenWidth - 1 && y != nScreenHeight - 1 && screen[(y + 1) * nScreenWidth + x + 1] != L' ')
+		res++;
+
+	return res;
+}
 
 int main()
 {
-    std::cout << "Hello World!\n";
+	srand(time(0));
+
+	wchar_t* screen = new wchar_t[nScreenHeight * nScreenWidth];
+	HANDLE hConsole = CreateConsoleScreenBuffer(GENERIC_READ | GENERIC_WRITE, 0, NULL, CONSOLE_TEXTMODE_BUFFER, NULL);
+	SetConsoleActiveScreenBuffer(hConsole);
+	DWORD dwBytesWritten = 0;
+	int nBestScore = 0;
+
+	bool bIsRunning  = true;
+	bool bUpKey      = false;
+	bool bDownKey    = false;
+	bool bUpKeyOld   = false;
+	bool bDownKeyOld = false;
+	auto nDelay      = 200ms;
+	int nGeneration  = 1;
+
+	bool ScreenBuffer[nScreenWidth * nScreenHeight] = { false };
+	for (int i = 0; i < 300; ++i)
+	{
+		int x = rand() % 120;
+		int y = (rand() % 37) + 3;
+		ScreenBuffer[y * nScreenWidth + x] = true;
+	}
+	/* Glyder
+	ScreenBuffer[15 * nScreenWidth + 40] =
+	ScreenBuffer[15 * nScreenWidth + 41] =
+	ScreenBuffer[15 * nScreenWidth + 42] =
+	ScreenBuffer[14 * nScreenWidth + 42] =
+	ScreenBuffer[13 * nScreenWidth + 41] = true;
+	*/
+
+	while (bIsRunning)
+	{
+		auto t1 = high_resolution_clock::now();
+		while ((high_resolution_clock::now() - t1) < nDelay)
+		{
+			if ((GetAsyncKeyState((unsigned char)'\x20') & 0x8000) != 0)
+				while ((GetAsyncKeyState((unsigned char)'\x20') & 0x8000) != 0);
+		}
+
+		for (int i = 0; i < nScreenHeight; ++i)
+			for (int j = 0; j < nScreenWidth; ++j)
+				screen[i * nScreenWidth + j] = L' ';
+
+		for (int i = 0; i < nScreenWidth; ++i)
+		{
+			screen[i] = L'#';
+			screen[2 * nScreenWidth + i] = L'#';
+		}
+		screen[nScreenWidth] = L'#';
+		screen[2 * nScreenWidth - 1] = L'#';
+
+		for (int x = 0; x < nScreenWidth; ++x)
+			for (int y = 3; y < nScreenHeight; ++y)
+				screen[y * nScreenWidth + x] = (ScreenBuffer[y * nScreenWidth + x] ? 0x2588 : L' ');
+
+		wsprintf(&screen[nScreenWidth + 20], L"CONWAY'S GAME OF LIFE");
+		wsprintf(&screen[nScreenWidth + 83], L"GENERATION: %d", nGeneration++);
+
+		// Logic
+		for (int x = 0; x < nScreenWidth; ++x)
+		{
+			for (int y = 3; y < nScreenHeight; ++y)
+			{
+				unsigned nNeighborCount = CountNeighbor(screen, x, y);
+				if (screen[y * nScreenWidth + x] == L' ' && nNeighborCount == 3)
+				{
+					ScreenBuffer[y * nScreenWidth + x] = true;
+				}
+				else if (screen[y * nScreenWidth + x] != L' ')
+				{
+					if (nNeighborCount < 2 || nNeighborCount > 3)
+						ScreenBuffer[y * nScreenWidth + x] = false;
+				}
+			}
+		}
+		// Presentation
+
+		WriteConsoleOutputCharacter(hConsole, screen, nScreenWidth * nScreenHeight, { 0,0 }, &dwBytesWritten);
+	}
+	return 0;
 }
-
-// Запуск программы: CTRL+F5 или меню "Отладка" > "Запуск без отладки"
-// Отладка программы: F5 или меню "Отладка" > "Запустить отладку"
-
-// Советы по началу работы 
-//   1. В окне обозревателя решений можно добавлять файлы и управлять ими.
-//   2. В окне Team Explorer можно подключиться к системе управления версиями.
-//   3. В окне "Выходные данные" можно просматривать выходные данные сборки и другие сообщения.
-//   4. В окне "Список ошибок" можно просматривать ошибки.
-//   5. Последовательно выберите пункты меню "Проект" > "Добавить новый элемент", чтобы создать файлы кода, или "Проект" > "Добавить существующий элемент", чтобы добавить в проект существующие файлы кода.
-//   6. Чтобы снова открыть этот проект позже, выберите пункты меню "Файл" > "Открыть" > "Проект" и выберите SLN-файл.
