@@ -1,6 +1,6 @@
 ﻿#include <Windows.h>
 #include <vector>
-#include <ctime>
+#include <ctime> // for time
 #include <chrono>
 #include <iostream>
 #include <fstream>
@@ -45,8 +45,8 @@ unsigned CountNeighbor(wchar_t* screen, int x, int y)
 
 	return res;
 }
-
-#define RENDER 1
+// if declared, randomly generates asked number of cells
+// If not, reads coords from file
 #define RANDOM 350
 
 int main()
@@ -79,17 +79,22 @@ int main()
 	while (true)
 	{
 		// These lines allow user to stop app while holding space
+		
 		auto t1 = high_resolution_clock::now();
 		while ((high_resolution_clock::now() - t1) < nDelay)
 		{
 			if ((GetAsyncKeyState((unsigned char)'\x20') & 0x8000) != 0)
 				while ((GetAsyncKeyState((unsigned char)'\x20') & 0x8000) != 0);
 		}
+		
 		// Clearing
+		
 		for (int i = 0; i < nScreenHeight; ++i)
 			for (int j = 0; j < nScreenWidth; ++j)
 				screen[i * nScreenWidth + j] = L' ';
+		
 		// Drawing to screen
+		
 		for (int i = 0; i < nScreenWidth; ++i)
 		{
 			screen[i] = L'#';
@@ -104,9 +109,9 @@ int main()
 
 		wsprintf(&screen[nScreenWidth + 20], L"CONWAY'S GAME OF LIFE");
 		wsprintf(&screen[nScreenWidth + 83], L"GENERATION: %d", nGeneration++);
+		
 		// Making new generation
-#if RENDER == 1
-		// Logic
+		
 		for (int x = 0; x < nScreenWidth; ++x)
 		{
 			for (int y = 3; y < nScreenHeight; ++y)
@@ -123,8 +128,7 @@ int main()
 				}
 			}
 		}
-		// Presentation
-#endif
+
 		WriteConsoleOutputCharacter(hConsole, screen, nScreenWidth * nScreenHeight, { 0,0 }, &dwBytesWritten);
 	}
 	return 0;
