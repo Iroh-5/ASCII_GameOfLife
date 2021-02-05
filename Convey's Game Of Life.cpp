@@ -3,6 +3,7 @@
 #include <ctime>
 #include <chrono>
 #include <iostream>
+#include <fstream>
 
 using namespace std::chrono;
 
@@ -14,6 +15,13 @@ struct Cell
 	int x;
 	int y;
 };
+// Parses file filled with coords
+void ParseFigure(bool* sb, int width, std::ifstream& ifs)
+{
+	int x, y;
+	while (ifs >> x >> y)
+		sb[y * width + x] = true;
+}
 
 unsigned CountNeighbor(wchar_t* screen, int x, int y)
 {
@@ -38,6 +46,9 @@ unsigned CountNeighbor(wchar_t* screen, int x, int y)
 	return res;
 }
 
+#define RENDER 1
+#define RANDOM 350
+
 int main()
 {
 	srand(time(0));
@@ -48,42 +59,37 @@ int main()
 	DWORD dwBytesWritten = 0;
 	int nBestScore = 0;
 
-	bool bIsRunning  = true;
-	bool bUpKey      = false;
-	bool bDownKey    = false;
-	bool bUpKeyOld   = false;
-	bool bDownKeyOld = false;
-	auto nDelay      = 200ms;
+	auto nDelay      = 100ms;
 	int nGeneration  = 1;
 
+	std::ifstream ifs("Glider Gun.txt");
 	bool ScreenBuffer[nScreenWidth * nScreenHeight] = { false };
-	for (int i = 0; i < 300; ++i)
+	
+#ifdef RANDOM
+	for (int i = 0; i < RANDOM; ++i)
 	{
 		int x = rand() % 120;
 		int y = (rand() % 37) + 3;
 		ScreenBuffer[y * nScreenWidth + x] = true;
 	}
-	/* Glyder
-	ScreenBuffer[15 * nScreenWidth + 40] =
-	ScreenBuffer[15 * nScreenWidth + 41] =
-	ScreenBuffer[15 * nScreenWidth + 42] =
-	ScreenBuffer[14 * nScreenWidth + 42] =
-	ScreenBuffer[13 * nScreenWidth + 41] = true;
-	*/
+#else
+	ParseFigure(ScreenBuffer, nScreenWidth, ifs);
+#endif
 
-	while (bIsRunning)
+	while (true)
 	{
+		// These lines allow user to stop app while holding space
 		auto t1 = high_resolution_clock::now();
 		while ((high_resolution_clock::now() - t1) < nDelay)
 		{
 			if ((GetAsyncKeyState((unsigned char)'\x20') & 0x8000) != 0)
 				while ((GetAsyncKeyState((unsigned char)'\x20') & 0x8000) != 0);
 		}
-
+		// Clearing
 		for (int i = 0; i < nScreenHeight; ++i)
 			for (int j = 0; j < nScreenWidth; ++j)
 				screen[i * nScreenWidth + j] = L' ';
-
+		// Drawing to screen
 		for (int i = 0; i < nScreenWidth; ++i)
 		{
 			screen[i] = L'#';
@@ -98,7 +104,8 @@ int main()
 
 		wsprintf(&screen[nScreenWidth + 20], L"CONWAY'S GAME OF LIFE");
 		wsprintf(&screen[nScreenWidth + 83], L"GENERATION: %d", nGeneration++);
-
+		// Making new generation
+#if RENDER == 1
 		// Logic
 		for (int x = 0; x < nScreenWidth; ++x)
 		{
@@ -117,7 +124,7 @@ int main()
 			}
 		}
 		// Presentation
-
+#endif
 		WriteConsoleOutputCharacter(hConsole, screen, nScreenWidth * nScreenHeight, { 0,0 }, &dwBytesWritten);
 	}
 	return 0;
